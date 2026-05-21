@@ -1,12 +1,33 @@
-# 🧬 agent-capsule
+# 📦 agent-capsule
 
-> **A self-contained, highly encapsulated runtime environment for autonomous agents.**
+這是一個自用的 Agent 功能模組管理 Monorepo，採用 pnpm workspace 架構。核心目的在於**將 LLM 接入、MCP 協議、原子工具（Tools）與複合工作流（Skills）進行扁平化、集中化管理**，作為個人其他終端應用的底層依賴庫。
 
-`agent-capsule` （智能體膠囊）是一個專為構建「大模型大腦、標準化神經網絡、物理工具與複合經驗」而設計的單一代碼庫多模組倉庫 （Monorepo）。它不只是一份代碼庫， 更是一個將分散的智能組件， 完美封裝成單一、可安全投送、且具備完全自主行動能力的「智能體生命維持與執行單元」。
+---
 
-與作為靜態知識與技術圖譜的 **`atlas`** 互補，`agent-capsule` 承載的是動態的運行時實踐（_development，偏向工程落地）與邊界探索（_research，偏向實驗研究）。
+## 📂 扁平化目錄與職責邊界
 
-### 💊 Why "Capsule"?
-- **隔離與封裝 (Isolate)**：將危險、複雜的外部工具（Tools）與特定的提示詞流（Skills）像藥物成分一樣精確計量並安全封裝。
-- **即插即用 (Deployable)**：符合標準化協議（MCP），使其像一個密封艙，隨時可以安全投送到任何網絡環境中執行任務。
-- **四位一體 (Synthesis)**：大腦（LLM）、神經（MCP）、手腳（Tools）與肌肉記憶（Skills）在此完美融合成一個不可分割的完整個體。
+```text
+agent-capsule/
+├── llm/          # 大模型適配：統一封裝 Provider API、Token 計算與 Stream 處理
+├── mcp/          # 協議層：處理標準 JSON-RPC 封裝與 Context 注入
+├── tools/        # 原子工具庫：無狀態、純函數、不含 LLM 推理的底層 I/O 操作
+└── skills/       # 複合技能包：有狀態、包含 System Prompt、串聯多個 Tools 的工作流
+
+```
+
+---
+
+## 📐 依賴防護原則 (Dependency Boundary)
+
+為了確保各個本地模組能被乾淨地解耦複用，本倉庫嚴格遵守以下**單向依賴拓撲**：
+
+```text
+[skills]  ─── 組合/呼叫 ───>  [tools]
+   │                             │
+   └──────── 共同底層 ──────────> [llm & mcp]
+
+```
+
+* **tools（原子工具）**：保持絕對純粹。只處理基礎輸入與輸出，**內部不允許引入 llm**。工具本身不需要、也不應該知道是哪個模型在調用它。
+* **skills（複合技能）**：業務邏輯與流程的聚合點。所有的 Prompt 拼接、Few-shot 範例引導、以及多步驟 Tool 的條件分支串聯（Workflow）皆收攏於此。
+* **mcp（標準接口）**：將內部的 tools 或 skills 包裝為符合 Model Context Protocol 規範的標準功能，供本地其他桌面客戶端或網關直接調用。
